@@ -7,3 +7,6 @@ Route::get('/', function () {
     return Inertia::render('Home');
 });
 
+Route::get('/dash', function () {
+    return view('dash');
+});
