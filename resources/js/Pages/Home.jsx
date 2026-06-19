@@ -1,4 +1,5 @@
 import BonusCardComponent from "@/Components/BonusCardComponent.jsx";
+import FooterComponent from "@/Components/FooterComponent";
 import SlipBetComponent from "@/Components/SlipBetComponent.jsx";
 export default function Home () {
     return (
@@ -51,25 +52,39 @@ export default function Home () {
                     mercado</p>
             </div>
         </div>
-        <section className="flex items-center justify-between mt-10">
-
-            <div>
+        <section className="flex items-start gap-6 mt-10 w-full">
+    
+            {/* Container do vídeo: o flex-1 faz ele ocupar o espaço restante, 
+                e min-w-0 permite que ele encolha abaixo do seu tamanho base */}
+            <div className="flex-1 min-w-0">
                 <h3 className="text-[#BDBDBD] font-medium text-lg mb-2">🔴Ao vivo</h3>
-                <iframe width="1000" height="720" src="https://www.youtube.com/embed/-QlNMqIoD6Y?si=5Ydp5oB6Bx26srI1"
-                        title="YouTube video player" frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        allowFullScreen></iframe>
+                
+                <iframe 
+                    className="w-full aspect-video rounded-md" 
+                    src="https://www.youtube.com/embed/-QlNMqIoD6Y?si=5Ydp5oB6Bx26srI1"
+                    title="YouTube video player" 
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                ></iframe>
             </div>
-            <SlipBetComponent />
+
+            {/* Container do componente de apostas: shrink-0 impede que ele seja esmagado
+                pelo vídeo em telas menores. Ajuste o 'w-[300px]' para a largura real dele. */}
+            <div className="w-[500px] shrink-0">
+                <SlipBetComponent />
+            </div>
+
         </section>
-        <section className="mt-20">
+        <section className="mt-20 bg-[url(images/footer_grid.svg)] bg-cover">
             <h2 className="text-3xl font-bold text-white mb-10">Bônus e Promoções</h2>
             <div className="flex gap-6">
                 <BonusCardComponent title="Bônus de Boas-Vindas" description="Ganhe um bônus de 100% no seu primeiro depósito, até R$500!" imageUrl="images/bonus1.png" />
             </div>
         </section>
     </main>
+    <FooterComponent />
     </>
 )
 }
