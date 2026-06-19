@@ -48,13 +48,14 @@ class ApostaController extends Controller
 
             
                 Aposta::create([
-                    'id_apostador' => $request->id_apostador,
-                    'id_partida' => $request->id_partida,
-                    'valor' => $request->valor,
+                    // 👇 Nome exato da coluna no seu banco
+                    'jogo_id' => $request->id_partida, 
                     'palpite' => $request->palpite,
-                    'odd_momento' => $oddMomento,
-                    'status' => 'PENDENTE',
-                    'data_aposta' => now(),
+                    'valor' => $request->valor,
+                    // 👇 Nome exato da coluna no banco
+                    'odd' => $oddMomento, 
+                    // 👇 A sua tabela tem essa coluna, então já vamos preencher!
+                    'retorno_potencial' => $request->valor * $oddMomento, 
                 ]);
 
                 return response()->json(['message' => 'Aposta registrada com sucesso!'], 201);
