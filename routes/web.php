@@ -12,3 +12,7 @@ Route::get('/dash', function () {
     return view('dash');
 });
 Route::get('/dashboard', [DashboardController::class, 'index']);
+
+Route::get('/perfil', function () {
+    return Inertia::render('perfil'); // Renderiza o componente perfil.jsx
+});

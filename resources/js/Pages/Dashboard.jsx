@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from '@inertiajs/react';
 import { 
   Home, Ticket, Gift, Settings, Search, Bell, User, X, Plus, DollarSign 
 } from 'lucide-react';
@@ -273,9 +274,14 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="w-10 h-10 rounded-md bg-[#111111] border border-[#202020] text-[#BDBDBD] hover:text-[#7DFF00] hover:border-[#7DFF00] transition cursor-pointer flex items-center justify-center">
+            {/* 👇 AQUI ESTÁ A ALTERAÇÃO COM O LINK DO INERTIA 👇 */}
+            <Link 
+              href="/perfil" 
+              className="w-10 h-10 rounded-md bg-[#111111] border border-[#202020] text-[#BDBDBD] hover:text-[#7DFF00] hover:border-[#7DFF00] transition cursor-pointer flex items-center justify-center"
+            >
               <User size={20} />
-            </div>
+            </Link>
+            {/* 👆 ============================================== 👆 */}
           </div>
         </header>
 
