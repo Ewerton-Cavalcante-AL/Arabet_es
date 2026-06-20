@@ -1,7 +1,12 @@
 import BonusCardComponent from "@/Components/BonusCardComponent.jsx";
 import FooterComponent from "@/Components/FooterComponent";
 import SlipBetComponent from "@/Components/SlipBetComponent.jsx";
+import { usePage } from '@inertiajs/react';
+import { User } from 'lucide-react';
+
 export default function Home () {
+
+    const { auth } = usePage().props;
     return (
         <>
         <header>
@@ -20,9 +25,21 @@ export default function Home () {
                         <li><a href="#" className="text-[#7DFF00] flex items-center gap-2 mr-5 hover:text-white"><img
                             src="images/gift-svgrepo-com.svg" alt="ìcone de uma caixa de presente"
                             className="w-6"/>Promoções</a></li>
-                        <li><a href="#" className="px-5 py-2 border border-[#202020] rounded-md">Entrar</a></li>
-                        <li><a href="#" className="px-5 py-2 bg-[#7DFF00] text-[#050505] font-medium rounded-md">Cadastre-se</a>
-                        </li>
+                        {auth.user ? (
+                            <>
+                            <a href="/dashboard" className="flex items-center gap-2">Painel</a>
+                            <div className="w-10 h-10 rounded-md bg-[#111111] border border-[#202020] text-[#BDBDBD] hover:text-[#7DFF00] hover:border-[#7DFF00] transition cursor-pointer flex items-center justify-center">
+                                          <User size={20} />
+                                        </div>
+                            </>
+                        ) : (
+                            <>
+                            <li><a href="/login" className="px-5 py-2 border border-[#202020] rounded-md">Entrar</a></li>
+                            <li><a href="/cadastro" className="px-5 py-2 bg-[#7DFF00] text-[#050505] font-medium rounded-md">Cadastre-se</a>
+                            </li>
+                            </>
+                        )}
+                        
                     </div>
                 </ul>
             </nav>

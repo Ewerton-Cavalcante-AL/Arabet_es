@@ -4,27 +4,34 @@ import {
   Home, Ticket, Gift, Settings, Search, Bell, User, X, Plus, DollarSign 
 } from 'lucide-react';
 
+import { usePage } from '@inertiajs/react';
+import MinhasApostasComponent from '@/Components/MinhasApostasComponent';
+
 export default function Dashboard() {
   // 👇 ID do usuário que já está cadastrado no seu banco de dados
   const USUARIO_ID = 4; 
   const [modalDepositoAberto, setModalDepositoAberto] = useState(false);
   const [valorDeposito, setValorDeposito] = useState('');
   const [carregandoDeposito, setCarregandoDeposito] = useState(false);
+  const USUARIO_ID = 2
 
   // ==========================================
   // ESTADOS (Variáveis da Tela)
   // ==========================================
   const [jogos, setJogos] = useState([]);
   const [carregandoJogos, setCarregandoJogos] = useState(true);
-  const [apostasSelecionadas, setApostasSelecionadas] = useState([]); 
+  
+  // 👇 MUDANÇA 1: De array para um único objeto (null inicialmente)
+  const [apostaSelecionada, setApostaSelecionada] = useState(null); 
+  
   const [valorAposta, setValorAposta] = useState('');
   const [mensagem, setMensagem] = useState('');
-  
-  // 👇 O saldo começa em 0, mas será substituído pelo valor REAL do banco em milissegundos
+  const [telaAtual, setTelaAtual] = useState('dashboard'); 
+  const [dados, setDados] = useState([]); 
   const [saldo, setSaldo] = useState(0); 
 
   // ==========================================
-  // 1. API: BUSCAR SALDO REAL DO USUÁRIO (GET)
+  // 1. API: BUSCAR SALDO REAL DO USUÁRIO
   // ==========================================
   useEffect(() => {
     const buscarSaldoDoBanco = async () => {
@@ -36,28 +43,29 @@ export default function Dashboard() {
           setSaldo(parseFloat(dados.saldo || 0)); 
         } else {
           console.error("Erro ao buscar dados do usuário no banco");
+        const resposta = await fetch(`http://localhost:8000/api/historico/${USUARIO_ID}`);
+        if (resposta.ok) {
+          const dados = await resposta.json();
+          setSaldo(parseFloat(dados[0].saldo || 0));
+          setDados(dados); 
         }
       } catch (erro) {
         console.error("Erro de conexão ao buscar saldo:", erro);
       }
     };
-
     buscarSaldoDoBanco();
   }, []);
 
   // ==========================================
-  // 2. API: BUSCAR JOGOS REAIS DO LARAVEL (GET)
+  // 2. API: BUSCAR JOGOS REAIS DO LARAVEL
   // ==========================================
   useEffect(() => {
     const buscarJogosDoBanco = async () => {
       try {
         const resposta = await fetch('http://localhost:8000/api/jogos'); 
-        
         if (resposta.ok) {
           const dados = await resposta.json();
           setJogos(dados);
-        } else {
-          console.error("Erro na API ao buscar jogos");
         }
       } catch (erro) {
         console.error("Erro de conexão com o servidor:", erro);
@@ -65,15 +73,14 @@ export default function Dashboard() {
         setCarregandoJogos(false);
       }
     };
-
     buscarJogosDoBanco();
   }, []);
 
   // ==========================================
-  // 3. API: ENVIAR MÚLTIPLA (POST)
+  // 3. API: ENVIAR APOSTA SIMPLES (POST)
   // ==========================================
   const finalizarAposta = async () => {
-    if (apostasSelecionadas.length === 0 || !valorAposta) return;
+    if (!apostaSelecionada || !valorAposta) return;
 
     const valorNumerico = parseFloat(valorAposta);
 
@@ -89,33 +96,34 @@ export default function Dashboard() {
           'Content-Type': 'application/json', 
           'Accept': 'application/json' 
         },
+        // 👇 MUDANÇA 2: Payload adaptado para a sua API de Aposta Simples
         body: JSON.stringify({
           id_apostador: USUARIO_ID,
-          apostas: apostasSelecionadas, 
-          valor_total: valorNumerico,
-          odd_total: oddTotal
+          id_partida: apostaSelecionada.jogoId,
+          valor: valorNumerico,
+          palpite: apostaSelecionada.palpite
         })
       });
 
       const resultado = await resposta.json();
 
       if (resposta.ok) {
-        setMensagem('✅ Bilhete registrado com sucesso!');
-        setSaldo(prevSaldo => prevSaldo - valorNumerico);
+        setMensagem('✅ Aposta registrada com sucesso!');
+        setSaldo(prevSaldo => prevSaldo - valorNumerico); 
         setValorAposta('');
-        setApostasSelecionadas([]); 
+        setApostaSelecionada(null); // Limpa o bilhete
         setTimeout(() => setMensagem(''), 4000); 
       } else {
-        setMensagem('❌ Erro: ' + (resultado.error || resultado.message || 'Não foi possível registrar o bilhete.'));
+        setMensagem('❌ Erro: ' + (resultado.error || resultado.message || 'Não foi possível registrar a aposta.'));
       }
     } catch (erro) {
-      console.error('Erro ao finalizar bilhete:', erro);
+      console.error('Erro ao finalizar aposta:', erro);
       setMensagem('❌ Erro de conexão ao tentar registrar.');
     }
   };
 
   // ==========================================
-  // 4. API: REALIZAR DEPÓSITO REAIS (POST)
+  // 4. API: REALIZAR DEPÓSITO
   // ==========================================
   const enviarDepositoBanco = async (e) => {
     e.preventDefault();
@@ -157,7 +165,7 @@ export default function Dashboard() {
   };
 
   // ==========================================
-  // LÓGICA DO BILHETE DE APOSTAS
+  // LÓGICA DO BILHETE (APENAS UMA APOSTA)
   // ==========================================
   const selecionarPalpite = (jogo, tipo, odd) => {
     let palpiteFormatado = '';
@@ -165,46 +173,36 @@ export default function Dashboard() {
     else if (tipo === 'visitante') palpiteFormatado = 'VISITANTE';
     else palpiteFormatado = 'EMPATE';
 
-    const novaAposta = {
+    // Se clicar na mesma odd que já está no bilhete, ele desmarca (remove)
+    if (apostaSelecionada && apostaSelecionada.jogoId === jogo.id_partida && apostaSelecionada.tipoSelecionado === tipo) {
+      setApostaSelecionada(null);
+      return;
+    }
+
+    // Se clicar em qualquer outra odd (do mesmo jogo ou de outro), ele substitui o bilhete
+    setApostaSelecionada({
       jogoId: jogo.id_partida,
       confronto: `${jogo.mandante} x ${jogo.visitante}`, 
       palpiteExibicao: tipo === 'casa' ? jogo.mandante : tipo === 'visitante' ? jogo.visitante : 'Empate',
       palpite: palpiteFormatado, 
       odd: parseFloat(odd),
       tipoSelecionado: tipo
-    };
-
-    setApostasSelecionadas(prev => {
-      const jogoJaExisteIndex = prev.findIndex(item => item.jogoId === jogo.id_partida);
-
-      if (jogoJaExisteIndex >= 0) {
-        if (prev[jogoJaExisteIndex].tipoSelecionado === tipo) {
-          return prev.filter(item => item.jogoId !== jogo.id_partida);
-        }
-        const novoArray = [...prev];
-        novoArray[jogoJaExisteIndex] = novaAposta;
-        return novoArray;
-      } else {
-        return [...prev, novaAposta];
-      }
     });
     setMensagem('');
   };
 
-  const removerAposta = (jogoId) => {
-    setApostasSelecionadas(prev => prev.filter(item => item.jogoId !== jogoId));
+  const removerAposta = () => {
+    setApostaSelecionada(null);
   };
 
   const isSelecionado = (jogoId, tipo) => {
-    return apostasSelecionadas.some(item => item.jogoId === jogoId && item.tipoSelecionado === tipo);
+    return apostaSelecionada?.jogoId === jogoId && apostaSelecionada?.tipoSelecionado === tipo;
   };
 
-  const oddTotal = apostasSelecionadas.length > 0 
-    ? apostasSelecionadas.reduce((acumulador, item) => acumulador * item.odd, 1).toFixed(2)
-    : 0;
+  const oddTotal = apostaSelecionada ? apostaSelecionada.odd.toFixed(2) : '0.00';
 
-  const retornoPotencial = apostasSelecionadas.length > 0 && valorAposta 
-    ? (parseFloat(valorAposta) * parseFloat(oddTotal)).toFixed(2) 
+  const retornoPotencial = apostaSelecionada && valorAposta 
+    ? (parseFloat(valorAposta) * apostaSelecionada.odd).toFixed(2) 
     : '0.00';
 
   return (
@@ -217,12 +215,12 @@ export default function Dashboard() {
         </a>
 
         <nav className="flex-1 px-4 space-y-2 mt-6">
-          <a href="#" className="flex items-center gap-3 text-[#050505] bg-[#7DFF00] font-medium p-3 rounded-md transition">
+          <button onClick={() => setTelaAtual("dashboard")} className={`w-full flex items-center gap-3 font-medium p-3 rounded-md transition ${telaAtual === 'dashboard' ? 'text-[#050505] bg-[#7DFF00]' : 'text-[#BDBDBD] hover:text-[#7DFF00] hover:bg-[#111111]'}`}>
             <Home size={20} /> Início
-          </a>
-          <a href="#" className="flex items-center gap-3 text-[#BDBDBD] hover:text-[#7DFF00] hover:bg-[#111111] p-3 rounded-md transition mt-4">
+          </button>
+          <button onClick={() => setTelaAtual("minhas_apostas")} className={`w-full mt-4 flex items-center gap-3 font-medium p-3 rounded-md transition ${telaAtual === 'minhas_apostas' ? 'text-[#050505] bg-[#7DFF00]' : 'text-[#BDBDBD] hover:text-[#7DFF00] hover:bg-[#111111]'}`}>
             <Ticket size={20} /> Minhas Apostas
-          </a>
+          </button>
           <a href="#" className="flex items-center gap-3 text-[#BDBDBD] hover:text-[#7DFF00] hover:bg-[#111111] p-3 rounded-md transition">
             <Gift size={20} /> Cupons
           </a>
@@ -286,84 +284,88 @@ export default function Dashboard() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 flex gap-8">
-          
-          {/* ================= COLUNA ESQUERDA (JOGOS) ================= */}
-          <div className="flex-1 min-w-[500px]">
-            <div className="bg-[url(/images/background.png)] bg-cover bg-center rounded-md p-10 mb-10 border border-[#202020] relative overflow-hidden flex flex-col justify-center">
-              <div className="absolute inset-0 bg-black/60"></div>
-              <div className="relative z-10">
-                <div className="flex gap-2 mb-4">
-                  <span className="bg-red-500/20 text-red-500 text-xs font-bold px-2 py-1 rounded">🔴 ALAGOANO</span>
-                  <span className="bg-[#7DFF00]/20 text-[#7DFF00] text-xs font-bold px-2 py-1 rounded">⚡ ODDS ESPECIAIS</span>
-                </div>
-                <h2 className="text-4xl font-bold mb-2 text-white leading-tight">Aposte no melhor do <br/><span className="text-[#7DFF00]">futebol Alagoano</span></h2>
-                <p className="text-[#BDBDBD] mb-6 mt-2">Odds especiais para você ganhar mais com os times da terra</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mb-6">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-              <h3 className="font-bold text-xl text-white">Próximos Jogos</h3>
-            </div>
-
-            {carregandoJogos ? (
-              <div className="text-center py-20 text-[#BDBDBD]"><p>Buscando jogos ao vivo...</p></div>
-            ) : jogos.length === 0 ? (
-              <div className="text-center py-20 text-[#BDBDBD]"><p>Nenhum jogo agendado encontrado.</p></div>
+        
+          {/* ================= COLUNA ESQUERDA ================= */}
+          { telaAtual === 'minhas_apostas' ? (
+              <MinhasApostasComponent dadosApostas={dados} />
             ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                {jogos.map((jogo) => (
-                  <div key={jogo.id_partida} className="bg-[#111111] p-5 rounded-md border border-[#202020] hover:border-[#7DFF00]/50 transition-colors">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="bg-[#050505] border border-[#202020] text-xs px-3 py-1 rounded-md text-[#BDBDBD]">
-                        {jogo.data_hora}
-                      </span>
-                    </div>
-                    
-                    <div className="flex justify-between items-center mb-6 px-2">
-                      <div className="text-center font-bold text-white text-lg">{jogo.mandante}</div>
-                      <div className="text-sm font-medium text-[#BDBDBD] bg-[#050505] px-2 py-1 rounded">X</div>
-                      <div className="text-center font-bold text-white text-lg">{jogo.visitante}</div>
-                    </div>
-                    
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => selecionarPalpite(jogo, 'casa', jogo.odd_mandante)} 
-                        className={`flex-1 py-2 rounded-md transition border text-center group
-                          ${isSelecionado(jogo.id_partida, 'casa') ? 'bg-[#7DFF00] border-[#7DFF00]' : 'bg-[#0A0A0A] border-[#202020] hover:border-[#7DFF00]/50'}
-                        `}
-                      >
-                        <div className={`text-[10px] font-medium mb-1 ${isSelecionado(jogo.id_partida, 'casa') ? 'text-[#050505]' : 'text-[#BDBDBD]'}`}>CASA</div>
-                        <div className={`font-bold ${isSelecionado(jogo.id_partida, 'casa') ? 'text-[#050505]' : 'text-white'}`}>{parseFloat(jogo.odd_mandante).toFixed(2)}</div>
-                      </button>
-
-                      <button 
-                        onClick={() => selecionarPalpite(jogo, 'empate', jogo.odd_empate)} 
-                        className={`flex-1 py-2 rounded-md transition border text-center group
-                          ${isSelecionado(jogo.id_partida, 'empate') ? 'bg-[#7DFF00] border-[#7DFF00]' : 'bg-[#0A0A0A] border-[#202020] hover:border-[#7DFF00]/50'}
-                        `}
-                      >
-                        <div className={`text-[10px] font-medium mb-1 ${isSelecionado(jogo.id_partida, 'empate') ? 'text-[#050505]' : 'text-[#BDBDBD]'}`}>EMPATE</div>
-                        <div className={`font-bold ${isSelecionado(jogo.id_partida, 'empate') ? 'text-[#050505]' : 'text-white'}`}>{parseFloat(jogo.odd_empate).toFixed(2)}</div>
-                      </button>
-
-                      <button 
-                        onClick={() => selecionarPalpite(jogo, 'visitante', jogo.odd_visitante)} 
-                        className={`flex-1 py-2 rounded-md transition border text-center group
-                          ${isSelecionado(jogo.id_partida, 'visitante') ? 'bg-[#7DFF00] border-[#7DFF00]' : 'bg-[#0A0A0A] border-[#202020] hover:border-[#7DFF00]/50'}
-                        `}
-                      >
-                        <div className={`text-[10px] font-medium mb-1 ${isSelecionado(jogo.id_partida, 'visitante') ? 'text-[#050505]' : 'text-[#BDBDBD]'}`}>VISITANTE</div>
-                        <div className={`font-bold ${isSelecionado(jogo.id_partida, 'visitante') ? 'text-[#050505]' : 'text-white'}`}>{parseFloat(jogo.odd_visitante).toFixed(2)}</div>
-                      </button>
-                    </div>
+            <div className="flex-1 min-w-[500px]">
+              <div className="bg-[url(/images/background.png)] bg-cover bg-center rounded-md p-10 mb-10 border border-[#202020] relative overflow-hidden flex flex-col justify-center">
+                <div className="absolute inset-0 bg-black/60"></div>
+                <div className="relative z-10">
+                  <div className="flex gap-2 mb-4">
+                    <span className="bg-red-500/20 text-red-500 text-xs font-bold px-2 py-1 rounded">🔴 ALAGOANO</span>
+                    <span className="bg-[#7DFF00]/20 text-[#7DFF00] text-xs font-bold px-2 py-1 rounded">⚡ ODDS ESPECIAIS</span>
                   </div>
-                ))}
+                  <h2 className="text-4xl font-bold mb-2 text-white leading-tight">Aposte no melhor do <br/><span className="text-[#7DFF00]">futebol Alagoano</span></h2>
+                  <p className="text-[#BDBDBD] mb-6 mt-2">Odds especiais para você ganhar mais com os times da terra</p>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* ================= COLUNA DIREITA (BILHETE MULTIPLA) ================= */}
+              <div className="flex items-center gap-2 mb-6">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                <h3 className="font-bold text-xl text-white">Próximos Jogos</h3>
+              </div>
+
+              {carregandoJogos ? (
+                <div className="text-center py-20 text-[#BDBDBD]"><p>Buscando jogos ao vivo...</p></div>
+              ) : jogos.length === 0 ? (
+                <div className="text-center py-20 text-[#BDBDBD]"><p>Nenhum jogo agendado encontrado.</p></div>
+              ) : (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  {jogos.map((jogo) => (
+                    <div key={jogo.id_partida} className="bg-[#111111] p-5 rounded-md border border-[#202020] hover:border-[#7DFF00]/50 transition-colors">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="bg-[#050505] border border-[#202020] text-xs px-3 py-1 rounded-md text-[#BDBDBD]">
+                          {jogo.data_hora}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center mb-6 px-2">
+                        <div className="text-center font-bold text-white text-lg">{jogo.mandante}</div>
+                        <div className="text-sm font-medium text-[#BDBDBD] bg-[#050505] px-2 py-1 rounded">X</div>
+                        <div className="text-center font-bold text-white text-lg">{jogo.visitante}</div>
+                      </div>
+                      
+                      <div className="flex gap-3">
+                        <button 
+                          onClick={() => selecionarPalpite(jogo, 'casa', jogo.odd_mandante)} 
+                          className={`flex-1 py-2 rounded-md transition border text-center group
+                            ${isSelecionado(jogo.id_partida, 'casa') ? 'bg-[#7DFF00] border-[#7DFF00]' : 'bg-[#0A0A0A] border-[#202020] hover:border-[#7DFF00]/50'}
+                          `}
+                        >
+                          <div className={`text-[10px] font-medium mb-1 ${isSelecionado(jogo.id_partida, 'casa') ? 'text-[#050505]' : 'text-[#BDBDBD]'}`}>CASA</div>
+                          <div className={`font-bold ${isSelecionado(jogo.id_partida, 'casa') ? 'text-[#050505]' : 'text-white'}`}>{parseFloat(jogo.odd_mandante).toFixed(2)}</div>
+                        </button>
+
+                        <button 
+                          onClick={() => selecionarPalpite(jogo, 'empate', jogo.odd_empate)} 
+                          className={`flex-1 py-2 rounded-md transition border text-center group
+                            ${isSelecionado(jogo.id_partida, 'empate') ? 'bg-[#7DFF00] border-[#7DFF00]' : 'bg-[#0A0A0A] border-[#202020] hover:border-[#7DFF00]/50'}
+                          `}
+                        >
+                          <div className={`text-[10px] font-medium mb-1 ${isSelecionado(jogo.id_partida, 'empate') ? 'text-[#050505]' : 'text-[#BDBDBD]'}`}>EMPATE</div>
+                          <div className={`font-bold ${isSelecionado(jogo.id_partida, 'empate') ? 'text-[#050505]' : 'text-white'}`}>{parseFloat(jogo.odd_empate).toFixed(2)}</div>
+                        </button>
+
+                        <button 
+                          onClick={() => selecionarPalpite(jogo, 'visitante', jogo.odd_visitante)} 
+                          className={`flex-1 py-2 rounded-md transition border text-center group
+                            ${isSelecionado(jogo.id_partida, 'visitante') ? 'bg-[#7DFF00] border-[#7DFF00]' : 'bg-[#0A0A0A] border-[#202020] hover:border-[#7DFF00]/50'}
+                          `}
+                        >
+                          <div className={`text-[10px] font-medium mb-1 ${isSelecionado(jogo.id_partida, 'visitante') ? 'text-[#050505]' : 'text-[#BDBDBD]'}`}>VISITANTE</div>
+                          <div className={`font-bold ${isSelecionado(jogo.id_partida, 'visitante') ? 'text-[#050505]' : 'text-white'}`}>{parseFloat(jogo.odd_visitante).toFixed(2)}</div>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ================= COLUNA DIREITA (BILHETE DE APOSTAS) ================= */}
           <aside className="w-[340px] shrink-0 bg-[#111111] rounded-md border border-[#202020] p-6 h-fit sticky top-0 flex flex-col">
             <div className="flex items-center gap-3 mb-6 text-[#7DFF00] border-b border-[#202020] pb-4">
               <Ticket size={24} />
@@ -376,31 +378,28 @@ export default function Dashboard() {
               </div>
             )}
 
-            {apostasSelecionadas.length > 0 ? (
+            {/* 👇 MUDANÇA 3: Renderiza apenas a apostaSelecionada em vez de fazer map */}
+            {apostaSelecionada ? (
               <div className="flex flex-col gap-4">
                 
-                <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-[#202020] scrollbar-track-transparent">
-                  {apostasSelecionadas.map((aposta) => (
-                    <div key={aposta.jogoId} className="bg-[#050505] border border-[#202020] p-3 rounded-md relative group">
-                      <button 
-                        onClick={() => removerAposta(aposta.jogoId)}
-                        className="absolute top-2 right-2 text-[#555] hover:text-red-500 transition"
-                        title="Remover jogo"
-                      >
-                        <X size={16} />
-                      </button>
-                      <div className="text-[11px] text-[#BDBDBD] mb-1.5 pr-6">{aposta.confronto}</div>
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-[#7DFF00] text-sm">{aposta.palpiteExibicao}</span>
-                        <span className="font-bold text-white text-sm">{aposta.odd.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  ))}
+                <div className="bg-[#050505] border border-[#202020] p-3 rounded-md relative group">
+                  <button 
+                    onClick={removerAposta}
+                    className="absolute top-2 right-2 text-[#555] hover:text-red-500 transition"
+                    title="Remover jogo"
+                  >
+                    <X size={16} />
+                  </button>
+                  <div className="text-[11px] text-[#BDBDBD] mb-1.5 pr-6">{apostaSelecionada.confronto}</div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-[#7DFF00] text-sm">{apostaSelecionada.palpiteExibicao}</span>
+                    <span className="font-bold text-white text-sm">{apostaSelecionada.odd.toFixed(2)}</span>
+                  </div>
                 </div>
 
                 <div className="border-t border-[#202020] pt-4 mt-2">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-sm text-[#BDBDBD]">Odd Total:</span>
+                    <span className="text-sm text-[#BDBDBD]">Odd Selecionada:</span>
                     <span className="font-bold text-white bg-[#050505] border border-[#202020] px-3 py-1 rounded text-lg">
                       {oddTotal}
                     </span>
@@ -418,7 +417,7 @@ export default function Dashboard() {
                   </div>
                   
                   <div className="flex justify-between items-center p-4 bg-[#050505] rounded-md border border-[#202020]">
-                    <span className="text-sm font-medium text-[#BDBDBD]">Retornos:</span>
+                    <span className="text-sm font-medium text-[#BDBDBD]">Retorno Potencial:</span>
                     <strong className="text-[#7DFF00] text-lg">R$ {retornoPotencial}</strong>
                   </div>
 
@@ -433,7 +432,7 @@ export default function Dashboard() {
             ) : (
               <div className="text-center py-10">
                 <p className="text-[#BDBDBD] text-sm">Seu bilhete está vazio.</p>
-                <p className="text-xs text-[#555555] mt-2">Clique nas odds dos jogos para adicionar uma aposta múltipla.</p>
+                <p className="text-xs text-[#555555] mt-2">Selecione um resultado para iniciar sua aposta.</p>
               </div>
             )}
           </aside>

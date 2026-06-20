@@ -7,6 +7,7 @@ use App\Http\Controllers\TransacaoController;
 use App\Http\Controllers\ApostaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UsuarioController; // 
+use App\Http\Controllers\AdminPartidaController;
 
 
 Route::get('/jogos', [PartidaController::class, 'index']);
@@ -26,3 +27,17 @@ Route::put('/usuario/{id}', [UsuarioController::class, 'atualizarDados']);
 
 // Atualizar a senha com segurança
 Route::put('/usuario/{id}/senha', [UsuarioController::class, 'atualizarSenha']);
+Route::post('/apostar', [ApostaController::class, 'apostar']);
+
+
+
+Route::prefix('admin')->group(function () {
+    Route::get('/times', [AdminPartidaController::class, 'listarTimes']);
+    
+    Route::put('/partidas/{id}/odds', [AdminPartidaController::class, 'atualizarOdds']);
+    
+   
+    Route::post('/partidas/{id}/finalizar', [AdminPartidaController::class, 'finalizarPartida']);
+
+    Route::post('/partidas', [AdminPartidaController::class, 'criarPartida']);
+});
