@@ -5,11 +5,13 @@ namespace App\Models;
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
 // ... (outros imports)
 
 class User extends Authenticatable
 {
+    use HasFactory;
     use Notifiable;
 
     // 1. Apontar para a tabela e schema corretos

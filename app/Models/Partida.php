@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Partida extends Model
 {
+    use HasFactory;
     protected $table = 'arabetdb.partida';
     protected $primaryKey = 'id_partida';
     public $timestamps = false;

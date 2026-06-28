@@ -31,7 +31,7 @@
 
     <div>
         <label class="block text-sm text-gray-400 mb-2">CPF</label>
-        <input type="text" name="cpf" required class="w-full rounded-2xl border border-[#202020] bg-[#171717] px-5 py-4 text-white focus:border-lime-400 outline-none transition" placeholder="000.000.000-00">
+        <input type="text" name="cpf" id="cpf" required class="w-full rounded-2xl border border-[#202020] bg-[#171717] px-5 py-4 text-white focus:border-lime-400 outline-none transition" placeholder="000.000.000-00">
     </div>
 
     <div>
@@ -46,7 +46,7 @@
 
     <div>
         <label class="block text-sm text-gray-400 mb-2">Senha</label>
-        <input type="password" name="password" required class="w-full rounded-2xl border border-[#202020] bg-[#171717] px-5 py-4 text-white focus:border-lime-400 outline-none transition" placeholder="••••••••">
+        <input type="password" name="password" id="password" required class="w-full rounded-2xl border border-[#202020] bg-[#171717] px-5 py-4 text-white focus:border-lime-400 outline-none transition" placeholder="••••••••">
     </div>
 
 
@@ -63,13 +63,27 @@
 
     <input type="hidden" name="tipo" id="input_tipo" value="APOSTADOR">
 
-    <button type="submit" class="w-full rounded-2xl bg-lime-400 py-4 font-bold text-black transition hover:bg-lime-300 mt-4">
+    <button type="submit" onclick="formatCPF(document.getElementById('cpf'), document.getElementById('password'))" class="w-full rounded-2xl bg-lime-400 py-4 font-bold text-black transition hover:bg-lime-300 mt-4">
         Cadastrar-se
     </button>
 </form>
 <a href="/" class="text-gray-500 underline hover:text-lime-300 transition mt-2">Início</a>
 </section> 
 <script>
+    function formatCPF(input, password) {
+        let value = input.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+        
+        input.value = value;
+        if (value.length < 11) {
+            alert('CPF inválido. Por favor, insira um CPF válido.');
+            input.focus();
+        }
+
+        if (password.value.length < 6) {
+            alert('A senha deve ter pelo menos 6 caracteres.');
+            password.focus();
+        }
+    }
 function selectRole(tipo) {
     // 1. Atualiza o valor do input hidden
     document.getElementById('input_tipo').value = tipo;

@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Apostador extends Model
 {
+    use HasFactory;
     protected $table = 'arabetdb.apostador';
     protected $primaryKey = 'id_usuario';
     public $timestamps = false;
