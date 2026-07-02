@@ -18,7 +18,7 @@ it('deve registrar uma aposta com sucesso e descontar o saldo', function () {
     $payload = [
         'id_apostador' => $apostador->id_usuario,
         'id_partida' => $partida->id_partida,
-        'valor' => 30.00,
+        'valor' => 130.00,
         'palpite' => 'MANDANTE'
     ];
 
