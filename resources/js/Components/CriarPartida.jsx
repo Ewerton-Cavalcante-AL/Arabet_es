@@ -14,7 +14,9 @@ export default function CriarPartida() {
         data_hora: '',
         odd_mandante: '1.01',
         odd_empate: '1.01',
-        odd_visitante: '1.01'
+        odd_visitante: '1.01',
+        imagem_mandante: null,
+        imagem_visitante: null
     });
 
     const API_URL = 'http://localhost:8000/api';
@@ -42,10 +44,10 @@ export default function CriarPartida() {
     }, []);
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, files } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: type === 'file' ? files[0] : value
         }));
     };
 
@@ -60,14 +62,20 @@ export default function CriarPartida() {
 
         setSubmitting(true);
 
+        const dataToSend = new FormData();
+        Object.keys(formData).forEach(key => {
+            if (formData[key] !== null && formData[key] !== '') {
+                dataToSend.append(key, formData[key]);
+            }
+        });
+
         try {
             const response = await fetch(`${API_URL}/admin/partidas`, { // ajuste a URL se necessário
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify(formData)
+                body: dataToSend
             });
 
             const data = await response.json();
@@ -81,8 +89,12 @@ export default function CriarPartida() {
                     data_hora: '',
                     odd_mandante: '1.01',
                     odd_empate: '1.01',
-                    odd_visitante: '1.01'
+                    odd_visitante: '1.01',
+                    imagem_mandante: null,
+                    imagem_visitante: null
                 });
+                // Reseta inputs de arquivo (opcional, pode ser feito via ref, mas vamos deixar assim)
+                document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
             } else {
                 // Captura mensagens de erro de validação do Laravel
                 const erroMsg = data.message || 'Erro ao criar partida.';
@@ -130,13 +142,22 @@ export default function CriarPartida() {
                                 value={formData.id_mandante}
                                 onChange={handleChange}
                                 disabled={loadingTimes}
-                                className="w-full bg-[#121212] text-white border border-[#444] rounded p-3 focus:border-blue-500 outline-none disabled:opacity-50"
+                                className="w-full bg-[#121212] text-white border border-[#444] rounded p-3 focus:border-blue-500 outline-none disabled:opacity-50 mb-3"
                             >
                                 <option value="">{loadingTimes ? 'Carregando times...' : 'Selecione o time'}</option>
                                 {times.map(time => (
                                     <option key={time.id_time} value={time.id_time}>{time.nome} ({time.cidade})</option>
                                 ))}
                             </select>
+
+                            <label className="text-sm font-medium text-gray-400 block mb-2">Imagem Mandante (Opcional)</label>
+                            <input
+                                type="file"
+                                name="imagem_mandante"
+                                accept="image/*"
+                                onChange={handleChange}
+                                className="w-full bg-[#121212] text-white border border-[#444] rounded p-2 focus:border-blue-500 outline-none text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                            />
                         </div>
 
                         <div>
@@ -147,13 +168,22 @@ export default function CriarPartida() {
                                 value={formData.id_visitante}
                                 onChange={handleChange}
                                 disabled={loadingTimes}
-                                className="w-full bg-[#121212] text-white border border-[#444] rounded p-3 focus:border-blue-500 outline-none disabled:opacity-50"
+                                className="w-full bg-[#121212] text-white border border-[#444] rounded p-3 focus:border-blue-500 outline-none disabled:opacity-50 mb-3"
                             >
                                 <option value="">{loadingTimes ? 'Carregando times...' : 'Selecione o time'}</option>
                                 {times.map(time => (
                                     <option key={time.id_time} value={time.id_time}>{time.nome} ({time.cidade})</option>
                                 ))}
                             </select>
+
+                            <label className="text-sm font-medium text-gray-400 block mb-2">Imagem Visitante (Opcional)</label>
+                            <input
+                                type="file"
+                                name="imagem_visitante"
+                                accept="image/*"
+                                onChange={handleChange}
+                                className="w-full bg-[#121212] text-white border border-[#444] rounded p-2 focus:border-blue-500 outline-none text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+                            />
                         </div>
                     </div>
 

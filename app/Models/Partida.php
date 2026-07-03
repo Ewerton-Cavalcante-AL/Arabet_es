@@ -15,6 +15,7 @@ class Partida extends Model
     protected $fillable = [
         'id_mandante', 'id_visitante', 'data_hora', 'status',
         'odd_mandante', 'odd_empate', 'odd_visitante',
-        'placar_mandante', 'placar_visitante'
+        'placar_mandante', 'placar_visitante',
+        'imagem_mandante', 'imagem_visitante'
     ];
 }

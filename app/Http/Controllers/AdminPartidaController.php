@@ -29,7 +29,19 @@ class AdminPartidaController extends Controller
             'odd_mandante' => 'required|numeric|min:1.01',
             'odd_empate' => 'required|numeric|min:1.01',
             'odd_visitante' => 'required|numeric|min:1.01',
+            'imagem_mandante' => 'nullable|image|max:2048',
+            'imagem_visitante' => 'nullable|image|max:2048',
         ]);
+
+        $pathMandante = null;
+        if ($request->hasFile('imagem_mandante')) {
+            $pathMandante = $request->file('imagem_mandante')->store('partidas', 'public');
+        }
+
+        $pathVisitante = null;
+        if ($request->hasFile('imagem_visitante')) {
+            $pathVisitante = $request->file('imagem_visitante')->store('partidas', 'public');
+        }
 
         $partida = Partida::create([
             'id_mandante' => $request->id_mandante,
@@ -38,6 +50,8 @@ class AdminPartidaController extends Controller
             'odd_mandante' => $request->odd_mandante,
             'odd_empate' => $request->odd_empate,
             'odd_visitante' => $request->odd_visitante,
+            'imagem_mandante' => $pathMandante,
+            'imagem_visitante' => $pathVisitante,
             'status' => 'AGENDADA'
         ]);
 
